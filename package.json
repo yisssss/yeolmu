@@ -1,0 +1,14 @@
+{
+  "name": "svg-to-json-converter",
+  "version": "1.0.0",
+  "description": "SVG를 JSON으로 변환하는 도구",
+  "scripts": {
+    "generate": "node generateJson.js",
+    "apply-rotation": "node applyRotation.js",
+    "generate-thumbnails": "node generateThumbnails.js"
+  },
+  "dependencies": {
+    "jsdom": "^23.0.0",
+    "sharp": "^0.33.5"
+  }
+}

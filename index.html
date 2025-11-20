@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yeolmu</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- GSAP CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/MotionPathPlugin.min.js"></script>
+</head>
+
+<body>
+    <!-- 로딩 화면 -->
+    <div id="loadingScreen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">이미지 로딩 중...</div>
+            <div class="loading-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text" id="progressText">0 / 0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 전체 보기 토글 -->
+    <button id="overviewToggle" type="button">들여다 보기</button>
+
+    <!-- 상단 중앙 타이틀 -->
+    <div id="appTitle">열무</div>
+
+    <div id="cameraWrapper">
+    <div id="viewer">
+        <div id="pageStage"></div>
+    </div>
+    </div>
+
+    <div id="ui" style="display: none;">
+        <button id="prevBtn" aria-label="이전">◀</button>
+        <span id="pageInfo">1 / 1</span>
+        <button id="nextBtn" aria-label="다음">▶</button>
+    </div>
+
+    <div id="pageSlider">
+        <span class="slider-edge-label" id="sliderCurrent">1</span>
+        <div class="slider-inner">
+            <div class="slider-tooltip" id="sliderTooltip">1</div>
+            <div class="slider-container">
+                <div class="slider-track-wrapper">
+                    <div class="slider-progress" id="sliderProgress"></div>
+                    <input type="range" id="sliderInput" min="1" max="1" value="1" />
+                </div>
+            </div>
+        </div>
+        <span class="slider-edge-label" id="sliderMax">1</span>
+    </div>
+
+    <!-- 새로고침 확인 모달 -->
+    <div id="reloadModal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-message">새로고침합니다. 처음부터 다시 보시겠습니까?</div>
+            <div class="modal-buttons">
+                <button id="modalCancel" class="modal-btn modal-btn-cancel">취소</button>
+                <button id="modalConfirm" class="modal-btn modal-btn-confirm">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- p70 선택지 모달 -->
+    <div id="choiceModal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content choice-modal-content">
+            <div class="modal-message">어떤 이야기를 선택하시겠습니까?</div>
+            <div class="choice-buttons">
+                <button id="choice1" class="choice-btn">
+                    <img src="sel1.svg" alt="선택지 1" />
+                </button>
+                <button id="choice2" class="choice-btn">
+                    <img src="sel2.svg" alt="선택지 2" />
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 슬라이더 경고 토스트 -->
+    <div id="sliderWarningToast" class="toast" aria-hidden="true">
+        <div class="toast-message">⚠ 순서대로 관람하기를 권장합니다. </br>빠르게 읽고 싶다면 ☰ 아이콘 → 모두 보기를 클릭해주세요.</div>
+    </div>
+
+    <!-- 모두 보기 로딩 모달 -->
+    <div id="allPagesLoadingModal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="loading-spinner"></div>
+            <div class="modal-message">모든 페이지를 생성하고 있습니다...</div>
+        </div>
+    </div>
+
+    <!-- 모두 보기 완료 모달 -->
+    <div id="allPagesCompleteModal" class="modal" aria-hidden="true">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-message">모든 만화를 읽었습니다.<br>슬라이더를 통해 원하는 페이지로 갈 수 있습니다.</div>
+            <div class="modal-buttons">
+                <button id="allPagesCompleteBtn" class="modal-btn modal-btn-confirm">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 햄버거 메뉴 -->
+    <button id="menuToggle" type="button" aria-label="메뉴">
+        ☰
+    </button>
+    <div id="menuPanel" aria-hidden="true">
+        <div class="menu-item" data-action="restart">처음부터 보기</div>
+        <div class="menu-item" data-action="other-ending">다른 결말 보기</div>
+        <div class="menu-item" data-action="all-pages">모두 보기</div>
+    </div>
+
+    <!-- 인포 아이콘 & 패널 -->
+    <button id="infoToggle" type="button" aria-label="정보">
+        i
+    </button>
+    <div id="infoPanel" aria-hidden="true">
+        <div class="info-row info-row-title">
+            <div class="info-cell-label">열무</div>
+            <div class="info-cell-value">yeolmu</div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell-label">연락</div>
+            <div class="info-cell-value">
+                <!-- 필요하면 실제 정보로 수정 -->
+                <div>your@email.com</div>
+                <div>@yourid</div>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell-label">도움 주신 분들</div>
+            <div class="info-cell-value">
+                <div>이름1</div>
+                <div>이름2</div>
+                <div>이름3</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
