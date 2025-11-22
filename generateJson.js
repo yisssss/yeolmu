@@ -5,6 +5,25 @@ const { JSDOM } = require('jsdom');
 // SVG 좌표를 2배로 확대하는 스케일 팩터
 const SCALE_FACTOR = 2;
 
+function parseGroupId(fullId = '') {
+    const trimmed = fullId.trim();
+    if (!trimmed) return null;
+    
+    const match = trimmed.match(/^p\d+/i);
+    if (!match) return null;
+    
+    const numberPart = match[0].slice(1);
+    const id = `p${numberPart}`;
+    
+    let suffix = trimmed.slice(match[0].length);
+    suffix = suffix.replace(/^[\s_\-]+/, '').trim();
+    suffix = suffix.split(/\s+/)[0];
+    suffix = suffix.replace(/^_+/, '').replace(/_+$/, '');
+    const type = suffix || 'basic';
+    
+    return { id, type };
+}
+
 /**
  * SVG 파일 내용을 파싱하여 pages.json 형식의 배열로 변환합니다.
  * @param {string} svgString - SVG 파일의 전체 텍스트 내용
@@ -20,17 +39,13 @@ function convertSvgToPagesJson(svgString) {
     const svgDoc = dom.window.document;
     const pageData = [];
 
-    const pageGroups = svgDoc.querySelectorAll('g[id*="_"]');
+    const pageGroups = svgDoc.querySelectorAll('g[id]');
 
     pageGroups.forEach(group => {
-        const fullId = group.id;
-        
-        // 레이어 그룹 제외 (id가 'p'로 시작하지 않으면 건너뛰기)
-        if (!fullId.startsWith('p')) {
-            return;
-        }
-        
-        const [id, type = 'basic'] = fullId.split('_');
+        const fullId = group.id || '';
+        const parsed = parseGroupId(fullId);
+        if (!parsed) return;
+        const { id, type } = parsed;
 
         // bounds rect 찾기: id가 "bounds"로 시작하거나 data-name="bounds"
         const rects = Array.from(group.getElementsByTagName('rect'));
@@ -160,7 +175,7 @@ function convertSvgToPagesJson(svgString) {
 // 메인 실행
 try {
     console.log('📖 shapes2.svg 파일을 읽는 중...');
-    const svgContent = fs.readFileSync('final.svg', 'utf-8');
+    const svgContent = fs.readFileSync('final2.svg', 'utf-8');
     
     console.log('🔄 SVG를 JSON으로 변환 중...');
     const jsonData = convertSvgToPagesJson(svgContent);
