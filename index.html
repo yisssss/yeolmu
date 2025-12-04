@@ -33,6 +33,12 @@
     <!-- 상단 중앙 타이틀 -->
     <div id="appTitle">열무</div>
 
+    <!-- 초기 페이지 안내 문구 (p1~p3에서만 표시) -->
+    <div id="initialGuide" aria-hidden="true">
+        스크롤로 페이지를 넘길 수 있습니다. </br></br>화면 오른쪽에 스크롤 게이지를 확인해주세요.
+    </div>
+
+
     <div id="cameraWrapper">
     <div id="viewer">
         <div id="pageStage"></div>
@@ -63,7 +69,7 @@
     <div id="reloadModal" class="modal" aria-hidden="true">
         <div class="modal-overlay"></div>
         <div class="modal-content">
-            <div class="modal-message">새로고침합니다. 처음부터 다시 보시겠습니까?</div>
+            <div class="modal-message" id="reloadModalMessage">새로고침합니다. 처음부터 보시겠습니까?</div>
             <div class="modal-buttons">
                 <button id="modalCancel" class="modal-btn modal-btn-cancel">취소</button>
                 <button id="modalConfirm" class="modal-btn modal-btn-confirm">확인</button>

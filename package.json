@@ -5,7 +5,8 @@
   "scripts": {
     "generate": "node generateJson.js",
     "apply-rotation": "node applyRotation.js",
-    "generate-thumbnails": "node generateThumbnails.js"
+    "generate-thumbnails": "node generateThumbnails.js",
+    "optimize-images": "node optimizeImages.js"
   },
   "dependencies": {
     "jsdom": "^23.0.0",
