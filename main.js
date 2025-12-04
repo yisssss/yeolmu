@@ -1912,7 +1912,17 @@ document.addEventListener('click', async (e) => {
     }
     
     // p36~40, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
+    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 p35로 강제 복귀
     if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
+        console.warn('⚠️ p36-p40에 갇힘 감지 (클릭) - p35로 강제 복귀');
+        const p35Index = pageBases.findIndex(id => id === 'p35');
+        if (p35Index !== -1 && pages[p35Index]) {
+            clickLocked = true;
+            killSpecialScroll();
+            centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
+                setupSpecialScrollForPage(pages[p35Index], p35Index);
+            });
+        }
         return;
     }
     
@@ -2011,6 +2021,27 @@ function updatePageInfo() {
     }
 }
 
+// ===== 네비게이션 헬퍼 함수 =====
+// ✅ 옵션 3: 네비게이션 가능 여부 체크 (코드 가독성 향상)
+function canNavigateFrom(pageId) {
+    // p35 스크롤 시퀀스 페이지들은 네비게이션 불가
+    if (['p36', 'p37', 'p38', 'p39', 'p40'].includes(pageId)) {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId}는 시퀀스 페이지`);
+        return false;
+    }
+    // p35, p41은 스크롤 중이면 불가
+    if ((pageId === 'p35' || pageId === 'p41') && activeST) {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId} 스크롤 진행 중`);
+        return false;
+    }
+    // p42, p73 등 특수 페이지
+    if (['p42', 'p73'].includes(pageId)) {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId}는 특수 페이지`);
+        return false;
+    }
+    return true;
+}
+
 // ===== 네비게이션 버튼 =====
 prevBtn.addEventListener('click', () => {
     // 클릭 이벤트 즉시 처리하여 반응성 향상
@@ -2077,7 +2108,17 @@ nextBtn.addEventListener('click', async () => {
     }
     
     // p36~40, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
+    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 p35로 강제 복귀
     if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
+        console.warn('⚠️ p36-p40에 갇힘 감지 - p35로 강제 복귀');
+        const p35Index = pageBases.findIndex(id => id === 'p35');
+        if (p35Index !== -1 && pages[p35Index]) {
+            clickLocked = true;
+            killSpecialScroll();
+            centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
+                setupSpecialScrollForPage(pages[p35Index], p35Index);
+            });
+        }
         return;
     }
     
@@ -2711,22 +2752,35 @@ async function preloadP42() {
 // p41 스크롤 진행률에 따라 p42 페이지 표시
 function handleP41ScrollProgress(progress) {
     if (!p41ToP42Page) return;
-    
+
     const pageEl = p41ToP42Page.el;
     const pageIndex = p41ToP42Page.index;
-    
+
     // 50% 이상 스크롤하면 p42 표시
     if (progress >= 0.5) {
         if (pageEl.style.opacity !== '1') {
             pageEl.style.opacity = '1';
             if (DEBUG) console.log(`✅ p42 표시됨 (progress: ${(progress * 100).toFixed(1)}%)`);
         }
-        
+
         specialProgressIndex = pageIndex;
         updatePageInfo();
-        
+
         if (pages[pageIndex]) {
             updatePageDimming(pages[pageIndex]);
+        }
+    }
+
+    // ✅ 옵션 3: current 보호 - p41 스크롤 중에는 current를 p41로 고정
+    const p41Index = pageBases.findIndex(id => id === 'p41');
+    const p42Index = pageBases.findIndex(id => id === 'p42');
+
+    if (p41Index !== -1 && p42Index !== -1) {
+        // current가 p42면 p41로 강제 복귀
+        if (current === p42Index) {
+            if (DEBUG) console.warn(`⚠️ current 보호: ${current}(p42) → ${p41Index}(p41)`);
+            current = p41Index;
+            updatePageInfo();
         }
     }
 }
@@ -2783,6 +2837,20 @@ function handleP32ScrollProgress(progress) {
         if (clickLocked) {
             clickLocked = false;
             if (DEBUG) console.log('🔓 p37까지 표시 완료 - 네비게이션 잠금 해제');
+        }
+    }
+
+    // ✅ 옵션 3: current 보호 - p35 스크롤 중에는 current를 p35로 고정
+    const p35Index = pageBases.findIndex(id => id === 'p35');
+    const p36Index = pageBases.findIndex(id => id === 'p36');
+    const p40Index = pageBases.findIndex(id => id === 'p40');
+
+    if (p35Index !== -1 && p36Index !== -1 && p40Index !== -1) {
+        // current가 p36-p40 범위에 있으면 p35로 강제 복귀
+        if (current >= p36Index && current <= p40Index) {
+            if (DEBUG) console.warn(`⚠️ current 보호: ${current}(${pageBases[current]}) → ${p35Index}(p35)`);
+            current = p35Index;
+            updatePageInfo();
         }
     }
 }
@@ -3044,21 +3112,13 @@ function attachSpecialScrollPath(pageEl, start, size, points, pageType = 'specia
                     clickLocked = false;  // ✅ 스크롤 완료 시에도 네비게이션 가능
                     
                     // p35 스크롤 완료 시 p41로 자동 이동
-                    // p40까지 표시되고 (0.85 이상) 조금 더 스크롤하면 바로 p41로 이동
+                    // ✅ 옵션 1: 조건 완화 - progress만으로 판단
                     if (pageIdForScroll === 'p35' && t >= 0.85 && !pageEl._p38AutoMoveScheduled) {
-                        const p40Index = pageBases.findIndex(id => id === 'p40');
-                        // p40까지 표시되었는지 확인 (override 포함)
-                        const hasReachedP40 = p40Index !== -1 && (specialProgressIndex === p40Index || current === p40Index);
-                        
-                        console.log(`🔍 [p35 스크롤 완료 체크] t=${t.toFixed(2)}, p40Index=${p40Index}, specialProgressIndex=${specialProgressIndex}, current=${current}, hasReachedP40=${hasReachedP40}`);
-                        
-                        if (hasReachedP40) {
-                            pageEl._p38AutoMoveScheduled = true;
-                            console.log('🚀 p40 표시 완료 - p41로 자동 이동 시작');
-                            setTimeout(() => {
-                                goToP38AfterP32();
-                            }, 500);
-                        }
+                        pageEl._p38AutoMoveScheduled = true;
+                        console.log('🚀 p35 스크롤 85% 완료 - p41로 자동 이동 시작');
+                        setTimeout(() => {
+                            goToP38AfterP32();
+                        }, 300);  // 500ms → 300ms로 단축
                     }
                     
                     // p41 스크롤 완료 시 p43으로 자동 이동
