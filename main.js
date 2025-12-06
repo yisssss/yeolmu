@@ -1905,54 +1905,7 @@ document.addEventListener('click', async (e) => {
     
     // 현재 페이지 ID 확인
     const currentPageId = pageBases[current];
-    
-    // 현재 p35, p41이고 스크롤 중이면 클릭 무시
-    if ((currentPageId === 'p35' || currentPageId === 'p41') && activeST) {
-        return;
-    }
-    
-    // p36~39, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
-    // ✅ p40은 예외: p40 표시 후 클릭하면 p41로 이동 가능
-    if (['p36', 'p37', 'p38', 'p39', 'p42'].includes(currentPageId)) {
-        if (DEBUG) console.warn('⚠️ p36-p39, p42는 시퀀스 페이지 - 네비게이션 차단');
-        return;
-    }
 
-    // ✅ p40에서 오른쪽 클릭 시 p41로 이동 (specialProgressIndex도 확인)
-    const displayPageId2 = specialProgressIndex !== null ? pageBases[specialProgressIndex] : currentPageId;
-    if (displayPageId2 === 'p40') {
-        const clickX = e.clientX;
-        const screenWidth = window.innerWidth;
-        const leftThird = screenWidth / 2;
-
-        // 오른쪽 클릭 → p41로 이동
-        if (clickX >= leftThird) {
-            if (DEBUG) console.log('🎯 p40 → p41 클릭 이동');
-            const p41Index = pageBases.findIndex(id => id === 'p41');
-            if (p41Index !== -1) {
-                // 특수 스크롤 정리
-                if (activeST) {
-                    killSpecialScroll();
-                }
-                clickLocked = true;
-                const targetPage = pages[p41Index];
-                if (targetPage) {
-                    const isSpecial = isSpecialPage(targetPage, p41Index);
-                    centerCameraOn(targetPage, 0.8, p41Index, false, () => {
-                        if (isSpecial) {
-                            setupSpecialScrollForPage(targetPage, p41Index);
-                        }
-                    });
-                } else {
-                    // p41 페이지 생성
-                    createNextPage();
-                }
-            }
-            return;
-        }
-        // 왼쪽 클릭은 아래의 prevBtn.click()으로 처리됨
-    }
-    
     // p73은 스크롤로만 선택지 진행 (클릭으로 다음 페이지 이동 불가)
     if (currentPageId === 'p73') {
         return;
@@ -1983,17 +1936,8 @@ document.addEventListener('click', async (e) => {
         }
         
         if (current < pageBases.length - 1) {
-            // p35, p41에서 다음으로 가려고 할 때는 스크롤 완료 후 자동 이동하므로 무시
-            if (currentPageId === 'p35' || currentPageId === 'p41') {
-                return;
-            }
-            
-            // ✅ 이미 생성된 페이지면 카메라만 이동
-            if (pages[current + 1]) {
-                nextBtn.click();
-            } else {
-                await createNextPage();
-            }
+            // ✅ 이미 생성된 페이지면 카메라만 이동 (또는 nextBtn 클릭 - p35/p41 skip 포함)
+            nextBtn.click();
         }
     }
 });
@@ -2076,29 +2020,6 @@ prevBtn.addEventListener('click', () => {
         return; // 잠금 상태이거나 첫 페이지거나 Overview 모드면 즉시 반환
     }
 
-    // ✅ p36-p40 시퀀스에 갇혔을 때 탈출 (p35로 돌아가기)
-    if (specialProgressIndex !== null) {
-        const displayPageId = pageBases[specialProgressIndex];
-        if (['p36', 'p37', 'p38', 'p39', 'p40'].includes(displayPageId)) {
-            if (DEBUG) console.log('🚪 p36-p40에서 탈출 → p35로 이동');
-            const p35Index = pageBases.findIndex(id => id === 'p35');
-            if (p35Index !== -1 && pages[p35Index]) {
-                // 특수 스크롤 정리
-                if (activeST) {
-                    killSpecialScroll();
-                }
-                clickLocked = true;
-                const isSpecial = isSpecialPage(pages[p35Index], p35Index);
-                centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
-                    if (isSpecial) {
-                        setupSpecialScrollForPage(pages[p35Index], p35Index);
-                    }
-                });
-            }
-            return;
-        }
-    }
-
     // 특수 스크롤 진행 중이면 먼저 정리
     if (activeST) {
         killSpecialScroll();
@@ -2151,40 +2072,37 @@ nextBtn.addEventListener('click', async () => {
         showChoiceModal();
         return;
     }
-    
-    // p35, p41에서 다음으로 가려고 할 때는 무시 (스크롤 완료 후 자동 이동)
-    if (currentPageId === 'p35' || currentPageId === 'p41') {
-        return;
-    }
-    
-    // p36~39, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
-    // ✅ p40은 예외: p40 표시 후 클릭하면 p41로 이동 가능
-    if (['p36', 'p37', 'p38', 'p39', 'p42'].includes(currentPageId)) {
-        if (DEBUG) console.warn('⚠️ p36-p39, p42는 시퀀스 페이지 - 네비게이션 차단');
+
+    // ✅ p35 클릭 시 p36으로 skip
+    if (currentPageId === 'p35') {
+        console.log('⏭️ p35 → p36으로 건너뛰기');
+        const p36Index = pageBases.findIndex(id => id === 'p36');
+        if (p36Index !== -1) {
+            clickLocked = true;
+            const targetPage = pages[p36Index];
+            if (targetPage) {
+                centerCameraOn(targetPage, 0.8, p36Index, false, () => {
+                    clickLocked = false;
+                });
+            } else {
+                await createNextPage();
+            }
+        }
         return;
     }
 
-    // ✅ p40에서 클릭 시 p41로 이동 (specialProgressIndex도 확인)
-    const displayPageId = specialProgressIndex !== null ? pageBases[specialProgressIndex] : currentPageId;
-    if (displayPageId === 'p40') {
-        if (DEBUG) console.log('🎯 p40 → p41 클릭 이동');
-        const p41Index = pageBases.findIndex(id => id === 'p41');
-        if (p41Index !== -1) {
-            // 특수 스크롤 정리
-            if (activeST) {
-                killSpecialScroll();
-            }
+    // ✅ p41 클릭 시 p42로 skip
+    if (currentPageId === 'p41') {
+        console.log('⏭️ p41 → p42로 건너뛰기');
+        const p42Index = pageBases.findIndex(id => id === 'p42');
+        if (p42Index !== -1) {
             clickLocked = true;
-            const targetPage = pages[p41Index];
+            const targetPage = pages[p42Index];
             if (targetPage) {
-                const isSpecial = isSpecialPage(targetPage, p41Index);
-                centerCameraOn(targetPage, 0.8, p41Index, false, () => {
-                    if (isSpecial) {
-                        setupSpecialScrollForPage(targetPage, p41Index);
-                    }
+                centerCameraOn(targetPage, 0.8, p42Index, false, () => {
+                    clickLocked = false;
                 });
             } else {
-                // p41 페이지 생성
                 await createNextPage();
             }
         }
@@ -2529,13 +2447,20 @@ function isSpecialPage(page, pageIndex) {
 
 // 이미 생성된 special 페이지에 대해 scrollTrigger와 미니맵을 다시 세팅
 async function setupSpecialScrollForPage(pageEl, pageIndex) {
+    const pageId = pageEl.dataset.pageId || pageBases[pageIndex];
+
+    // ✅ p35, p41은 스크롤 시퀀스 사용 안 함 (평범한 페이지로 처리)
+    if (pageId === 'p35' || pageId === 'p41') {
+        console.log(`⏭️ ${pageId} 스크롤 시퀀스 건너뛰기 - 평범한 페이지로 처리`);
+        clickLocked = false;
+        return;
+    }
+
     // 혹시 남아 있을지 모르는 이전 special 스크롤 상태를 먼저 완전히 정리
     if (activeST || specialSvg || specialSpacer || specialMini) {
         killSpecialScroll();
     }
 
-    const pageId = pageEl.dataset.pageId || pageBases[pageIndex];
-    
     if (DEBUG) {
         console.log(`🔍 [setupSpecialScrollForPage] pageId: ${pageId}, pageIndex: ${pageIndex}`);
     }
