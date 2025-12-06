@@ -1912,17 +1912,9 @@ document.addEventListener('click', async (e) => {
     }
     
     // p36~40, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
-    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 p35로 강제 복귀
+    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 경고만 표시
     if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
-        console.warn('⚠️ p36-p40에 갇힘 감지 (클릭) - p35로 강제 복귀');
-        const p35Index = pageBases.findIndex(id => id === 'p35');
-        if (p35Index !== -1 && pages[p35Index]) {
-            clickLocked = true;
-            killSpecialScroll();
-            centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
-                setupSpecialScrollForPage(pages[p35Index], p35Index);
-            });
-        }
+        if (DEBUG) console.warn('⚠️ p36-p40은 시퀀스 페이지 - 네비게이션 차단');
         return;
     }
     
@@ -2108,17 +2100,9 @@ nextBtn.addEventListener('click', async () => {
     }
     
     // p36~40, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
-    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 p35로 강제 복귀
+    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 경고만 표시
     if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
-        console.warn('⚠️ p36-p40에 갇힘 감지 - p35로 강제 복귀');
-        const p35Index = pageBases.findIndex(id => id === 'p35');
-        if (p35Index !== -1 && pages[p35Index]) {
-            clickLocked = true;
-            killSpecialScroll();
-            centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
-                setupSpecialScrollForPage(pages[p35Index], p35Index);
-            });
-        }
+        if (DEBUG) console.warn('⚠️ p36-p40은 시퀀스 페이지 - 네비게이션 차단');
         return;
     }
     
