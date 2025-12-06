@@ -1918,8 +1918,9 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // ✅ p40에서 오른쪽 클릭 시 p41로 이동 (왼쪽 클릭은 아래에서 처리)
-    if (currentPageId === 'p40') {
+    // ✅ p40에서 오른쪽 클릭 시 p41로 이동 (specialProgressIndex도 확인)
+    const displayPageId2 = specialProgressIndex !== null ? pageBases[specialProgressIndex] : currentPageId;
+    if (displayPageId2 === 'p40') {
         const clickX = e.clientX;
         const screenWidth = window.innerWidth;
         const leftThird = screenWidth / 2;
@@ -2074,7 +2075,30 @@ prevBtn.addEventListener('click', () => {
     if (clickLocked || current <= 0 || isOverviewMode) {
         return; // 잠금 상태이거나 첫 페이지거나 Overview 모드면 즉시 반환
     }
-    
+
+    // ✅ p36-p40 시퀀스에 갇혔을 때 탈출 (p35로 돌아가기)
+    if (specialProgressIndex !== null) {
+        const displayPageId = pageBases[specialProgressIndex];
+        if (['p36', 'p37', 'p38', 'p39', 'p40'].includes(displayPageId)) {
+            if (DEBUG) console.log('🚪 p36-p40에서 탈출 → p35로 이동');
+            const p35Index = pageBases.findIndex(id => id === 'p35');
+            if (p35Index !== -1 && pages[p35Index]) {
+                // 특수 스크롤 정리
+                if (activeST) {
+                    killSpecialScroll();
+                }
+                clickLocked = true;
+                const isSpecial = isSpecialPage(pages[p35Index], p35Index);
+                centerCameraOn(pages[p35Index], 0.8, p35Index, false, () => {
+                    if (isSpecial) {
+                        setupSpecialScrollForPage(pages[p35Index], p35Index);
+                    }
+                });
+            }
+            return;
+        }
+    }
+
     // 특수 스크롤 진행 중이면 먼저 정리
     if (activeST) {
         killSpecialScroll();
@@ -2140,8 +2164,9 @@ nextBtn.addEventListener('click', async () => {
         return;
     }
 
-    // ✅ p40에서 클릭 시 p41로 이동
-    if (currentPageId === 'p40') {
+    // ✅ p40에서 클릭 시 p41로 이동 (specialProgressIndex도 확인)
+    const displayPageId = specialProgressIndex !== null ? pageBases[specialProgressIndex] : currentPageId;
+    if (displayPageId === 'p40') {
         if (DEBUG) console.log('🎯 p40 → p41 클릭 이동');
         const p41Index = pageBases.findIndex(id => id === 'p41');
         if (p41Index !== -1) {
@@ -2814,19 +2839,6 @@ function handleP41ScrollProgress(progress) {
             updatePageDimming(pages[pageIndex]);
         }
     }
-
-    // ✅ 옵션 3: current 보호 - p41 스크롤 중에는 current를 p41로 고정
-    const p41Index = pageBases.findIndex(id => id === 'p41');
-    const p42Index = pageBases.findIndex(id => id === 'p42');
-
-    if (p41Index !== -1 && p42Index !== -1) {
-        // current가 p42면 p41로 강제 복귀
-        if (current === p42Index) {
-            if (DEBUG) console.warn(`⚠️ current 보호: ${current}(p42) → ${p41Index}(p41)`);
-            current = p41Index;
-            updatePageInfo();
-        }
-    }
 }
 
 // 32p 스크롤 진행률에 따라 33~37 페이지 표시 및 슬라이더 업데이트
@@ -2880,21 +2892,7 @@ function handleP32ScrollProgress(progress) {
     if (progress >= 0.8 && lastVisibleIndex === pageBases.findIndex(id => id === 'p40')) {
         if (clickLocked) {
             clickLocked = false;
-            if (DEBUG) console.log('🔓 p37까지 표시 완료 - 네비게이션 잠금 해제');
-        }
-    }
-
-    // ✅ 옵션 3: current 보호 - p35 스크롤 중에는 current를 p35로 고정
-    const p35Index = pageBases.findIndex(id => id === 'p35');
-    const p36Index = pageBases.findIndex(id => id === 'p36');
-    const p40Index = pageBases.findIndex(id => id === 'p40');
-
-    if (p35Index !== -1 && p36Index !== -1 && p40Index !== -1) {
-        // current가 p36-p40 범위에 있으면 p35로 강제 복귀
-        if (current >= p36Index && current <= p40Index) {
-            if (DEBUG) console.warn(`⚠️ current 보호: ${current}(${pageBases[current]}) → ${p35Index}(p35)`);
-            current = p35Index;
-            updatePageInfo();
+            if (DEBUG) console.log('🔓 p40까지 표시 완료 - 네비게이션 잠금 해제');
         }
     }
 }
