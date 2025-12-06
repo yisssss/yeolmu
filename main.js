@@ -1911,11 +1911,45 @@ document.addEventListener('click', async (e) => {
         return;
     }
     
-    // p36~40, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
-    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 경고만 표시
-    if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
-        if (DEBUG) console.warn('⚠️ p36-p40은 시퀀스 페이지 - 네비게이션 차단');
+    // p36~39, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
+    // ✅ p40은 예외: p40 표시 후 클릭하면 p41로 이동 가능
+    if (['p36', 'p37', 'p38', 'p39', 'p42'].includes(currentPageId)) {
+        if (DEBUG) console.warn('⚠️ p36-p39, p42는 시퀀스 페이지 - 네비게이션 차단');
         return;
+    }
+
+    // ✅ p40에서 오른쪽 클릭 시 p41로 이동 (왼쪽 클릭은 아래에서 처리)
+    if (currentPageId === 'p40') {
+        const clickX = e.clientX;
+        const screenWidth = window.innerWidth;
+        const leftThird = screenWidth / 2;
+
+        // 오른쪽 클릭 → p41로 이동
+        if (clickX >= leftThird) {
+            if (DEBUG) console.log('🎯 p40 → p41 클릭 이동');
+            const p41Index = pageBases.findIndex(id => id === 'p41');
+            if (p41Index !== -1) {
+                // 특수 스크롤 정리
+                if (activeST) {
+                    killSpecialScroll();
+                }
+                clickLocked = true;
+                const targetPage = pages[p41Index];
+                if (targetPage) {
+                    const isSpecial = isSpecialPage(targetPage, p41Index);
+                    centerCameraOn(targetPage, 0.8, p41Index, false, () => {
+                        if (isSpecial) {
+                            setupSpecialScrollForPage(targetPage, p41Index);
+                        }
+                    });
+                } else {
+                    // p41 페이지 생성
+                    createNextPage();
+                }
+            }
+            return;
+        }
+        // 왼쪽 클릭은 아래의 prevBtn.click()으로 처리됨
     }
     
     // p73은 스크롤로만 선택지 진행 (클릭으로 다음 페이지 이동 불가)
@@ -2099,10 +2133,36 @@ nextBtn.addEventListener('click', async () => {
         return;
     }
     
-    // p36~40, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
-    // ✅ 옵션 2: 탈출 경로 추가 - 갇혔을 때 경고만 표시
-    if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
-        if (DEBUG) console.warn('⚠️ p36-p40은 시퀀스 페이지 - 네비게이션 차단');
+    // p36~39, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
+    // ✅ p40은 예외: p40 표시 후 클릭하면 p41로 이동 가능
+    if (['p36', 'p37', 'p38', 'p39', 'p42'].includes(currentPageId)) {
+        if (DEBUG) console.warn('⚠️ p36-p39, p42는 시퀀스 페이지 - 네비게이션 차단');
+        return;
+    }
+
+    // ✅ p40에서 클릭 시 p41로 이동
+    if (currentPageId === 'p40') {
+        if (DEBUG) console.log('🎯 p40 → p41 클릭 이동');
+        const p41Index = pageBases.findIndex(id => id === 'p41');
+        if (p41Index !== -1) {
+            // 특수 스크롤 정리
+            if (activeST) {
+                killSpecialScroll();
+            }
+            clickLocked = true;
+            const targetPage = pages[p41Index];
+            if (targetPage) {
+                const isSpecial = isSpecialPage(targetPage, p41Index);
+                centerCameraOn(targetPage, 0.8, p41Index, false, () => {
+                    if (isSpecial) {
+                        setupSpecialScrollForPage(targetPage, p41Index);
+                    }
+                });
+            } else {
+                // p41 페이지 생성
+                await createNextPage();
+            }
+        }
         return;
     }
     
