@@ -2443,7 +2443,7 @@ function isSpecialPage(page, pageIndex) {
 }
 
 // 이미 생성된 special 페이지에 대해 scrollTrigger와 미니맵을 다시 세팅
-function setupSpecialScrollForPage(pageEl, pageIndex) {
+async function setupSpecialScrollForPage(pageEl, pageIndex) {
     // 혹시 남아 있을지 모르는 이전 special 스크롤 상태를 먼저 완전히 정리
     if (activeST || specialSvg || specialSpacer || specialMini) {
         killSpecialScroll();
@@ -2544,12 +2544,12 @@ function setupSpecialScrollForPage(pageEl, pageIndex) {
 
     // 32p인 경우 33~37 페이지 미리 생성 (숨김 상태)
     if (pageId === 'p35') {
-        preloadP33ToP37();
+        await preloadP33ToP37();  // ✅ await 추가
     }
-    
+
     // p41인 경우 p42 페이지 미리 생성 (숨김 상태)
     if (pageId === 'p41') {
-        preloadP42();
+        await preloadP42();  // ✅ await 추가
     }
 
     attachSpecialScrollPath(pageEl, start, size, localPts, pageEl._type || pageTypeMap[pageId] || 'special1');
@@ -2884,11 +2884,11 @@ async function goToP43AfterP41() {
         killSpecialScroll();
     }
     
-    // p43 페이지로 이동
+    // p43 페이지로 이동 (화면 튐 방지를 위해 duration 증가)
     const targetPage = pages[p43Index];
     if (targetPage) {
         const isSpecial = isSpecialPage(targetPage, p43Index);
-        centerCameraOn(targetPage, 0.8, p43Index, false, () => {
+        centerCameraOn(targetPage, 1.2, p43Index, false, () => {  // 0.8 → 1.2 (부드러운 전환)
             if (isSpecial) {
                 setupSpecialScrollForPage(targetPage, p43Index);
             }
@@ -2912,6 +2912,9 @@ function killSpecialScroll() {
     if (specialSvg) { specialSvg.remove(); specialSvg = null; }
     if (specialSpacer) { specialSpacer.remove(); specialSpacer = null; }
 
+    // ✅ 스크롤 위치 초기화 - 특수 스크롤 페이지에서 벗어났을 때 스크롤 리셋
+    window.scrollTo(0, 0);
+
     // 특수 페이지 미니맵 제거
     if (specialMini) { specialMini.remove(); specialMini = null; }
     specialMiniIndicator = null;
@@ -2928,11 +2931,11 @@ function killSpecialScroll() {
             updatePageDimming(pages[current]);
         }
     }
-    
+
     // 스크롤 100% 도달 후 추가 스크롤 감지 핸들러 제거
     removeScrollAtMaxHandler();
     isScrollAtMax = false;
-    
+
     // 32p 시퀀스 페이지 정리 (38로 이동할 때는 유지)
     // p33ToP37Pages는 유지 (다시 32p로 돌아올 수 있으므로)
 }
@@ -3106,16 +3109,13 @@ function attachSpecialScrollPath(pageEl, start, size, points, pageType = 'specia
                     }
                     
                     // p41 스크롤 완료 시 p43으로 자동 이동
+                    // ✅ 조건 완화 - progress만으로 판단
                     if (pageIdForScroll === 'p41' && t >= 0.85 && !pageEl._p43AutoMoveScheduled) {
-                        const p42Index = pageBases.findIndex(id => id === 'p42');
-                        const hasReachedP42 = p42Index !== -1 && (specialProgressIndex === p42Index || current === p42Index);
-                        if (hasReachedP42) {
-                            pageEl._p43AutoMoveScheduled = true;
-                            if (DEBUG) console.log('🚀 p42 표시 완료 - p43으로 자동 이동 시작');
-                            setTimeout(() => {
-                                goToP43AfterP41();
-                            }, 500);
-                        }
+                        pageEl._p43AutoMoveScheduled = true;
+                        if (DEBUG) console.log('🚀 p41 스크롤 85% 완료 - p43으로 자동 이동 시작');
+                        setTimeout(() => {
+                            goToP43AfterP41();
+                        }, 300);  // 500ms → 300ms로 단축
                     }
                 }
             }
