@@ -680,24 +680,12 @@ function handleMenuAction(action) {
             // 먼저 들여다보기 모드인지 확인
             if (isOverviewMode) {
                 exitOverviewMode(() => {
-                    // 들여다보기 모드로 전환 완료 후 실행
-                    if (selectedPath === 'path1') {
-                        goToP70AndChoosePath('path2');
-                    } else if (selectedPath === 'path2') {
-                        goToP70AndChoosePath('path1');
-                    } else {
-                        showChoiceModal();
-                    }
+                    // 들여다보기 모드 종료 후 p73으로 이동하고 선택지 모달 표시
+                    goToP70AndChoosePath();
                 });
             } else {
-                // 이미 들여다보기 모드라면 바로 실행
-                if (selectedPath === 'path1') {
-                    goToP70AndChoosePath('path2');
-                } else if (selectedPath === 'path2') {
-                    goToP70AndChoosePath('path1');
-                } else {
-                    showChoiceModal();
-                }
+                // 이미 일반 모드라면 바로 p73으로 이동하고 선택지 모달 표시
+                goToP70AndChoosePath();
             }
             break;
         case 'all-pages':
@@ -852,8 +840,8 @@ async function goToAllPagesAndOverview() {
     }
 }
 
-async function goToP70AndChoosePath(path) {
-    // p73으로 이동하고 선택한 경로 적용
+async function goToP70AndChoosePath() {
+    // p73으로 이동하고 선택지 모달 표시
     const p73Index = pageBases.findIndex(id => id === 'p73');
     if (p73Index === -1) {
         console.warn('p73을 찾을 수 없습니다.');
@@ -886,16 +874,16 @@ async function goToP70AndChoosePath(path) {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     
-    // p73으로 이동
+    // p73으로 이동 후 선택지 모달 표시
     if (pages[p73Index]) {
         centerCameraOn(pages[p73Index], 0.8, p73Index, false, () => {
             clickLocked = false;
-            // 선택한 경로 적용
-            applyPathChoice(path);
+            // 선택지 모달 표시
+            showChoiceModal();
         });
     } else {
         clickLocked = false;
-        applyPathChoice(path);
+        showChoiceModal();
     }
 }
 
