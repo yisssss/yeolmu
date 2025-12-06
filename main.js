@@ -2076,6 +2076,12 @@ nextBtn.addEventListener('click', async () => {
     // ✅ p35 클릭 시 p36으로 skip
     if (currentPageId === 'p35') {
         console.log('⏭️ p35 → p36으로 건너뛰기');
+
+        // 혹시 남아있는 이전 스크롤 트리거 정리
+        if (activeST) {
+            killSpecialScroll();
+        }
+
         const p36Index = pageBases.findIndex(id => id === 'p36');
         if (p36Index !== -1) {
             clickLocked = true;
@@ -2094,6 +2100,12 @@ nextBtn.addEventListener('click', async () => {
     // ✅ p41 클릭 시 p42로 skip
     if (currentPageId === 'p41') {
         console.log('⏭️ p41 → p42로 건너뛰기');
+
+        // 혹시 남아있는 이전 스크롤 트리거 정리
+        if (activeST) {
+            killSpecialScroll();
+        }
+
         const p42Index = pageBases.findIndex(id => id === 'p42');
         if (p42Index !== -1) {
             clickLocked = true;
@@ -2645,8 +2657,9 @@ async function preloadP33ToP37() {
         // 이미 생성된 페이지면 사용
         if (pages[pageIndex]) {
             const pageEl = pages[pageIndex];
-            pageEl.style.opacity = '0';
-            pageEl.style.pointerEvents = 'none';
+            // ✅ p36-p40은 이제 일반 페이지로 취급 - 항상 표시
+            pageEl.style.opacity = '1';
+            pageEl.style.pointerEvents = 'auto';
             pageEl._isP35Sequence = true; // 35p 시퀀스 페이지임을 표시
             // p36-p40은 p35보다 아래에 위치하도록 z-index 설정
             pageEl.style.zIndex = '1';
@@ -2672,20 +2685,20 @@ async function preloadP33ToP37() {
             type: pageType,
             pageId
         });
-        
-        // 초기에는 숨김 상태 (p32 스크롤에 따라 순서대로 드러남)
-        pageEl.style.opacity = '0';
-        pageEl.style.pointerEvents = 'none';
+
+        // ✅ p36-p40은 이제 일반 페이지로 취급 - 즉시 표시
+        pageEl.style.opacity = '1';
+        pageEl.style.pointerEvents = 'auto';
         pageEl.style.transition = 'opacity 0.5s ease';
         pageEl._isP35Sequence = true; // 35p 시퀀스 페이지임을 표시
         // p36-p40은 p35보다 아래에 위치하도록 z-index 설정
         pageEl.style.zIndex = '1';
-        
+
         pages[pageIndex] = pageEl;
         pageStage.appendChild(pageEl);
         p33ToP37Pages.push({ el: pageEl, index: pageIndex });
     }
-    
+
     if (DEBUG) console.log(`✅ p36-p40 페이지 생성 완료: ${p33ToP37Pages.length}개`);
 }
 
@@ -2702,8 +2715,9 @@ async function preloadP42() {
     // 이미 생성된 페이지면 사용
     if (pages[startIndex]) {
         const pageEl = pages[startIndex];
-        pageEl.style.opacity = '0';
-        pageEl.style.pointerEvents = 'none';
+        // ✅ p42는 이제 일반 페이지로 취급 - 항상 표시
+        pageEl.style.opacity = '1';
+        pageEl.style.pointerEvents = 'auto';
         pageEl._isP41Sequence = true;
         pageEl.style.zIndex = '1';
         p41ToP42Page = { el: pageEl, index: startIndex };
@@ -2729,17 +2743,18 @@ async function preloadP42() {
         type: pageType,
         pageId
     });
-    
-    pageEl.style.opacity = '0';
-    pageEl.style.pointerEvents = 'none';
+
+    // ✅ p42는 이제 일반 페이지로 취급 - 즉시 표시
+    pageEl.style.opacity = '1';
+    pageEl.style.pointerEvents = 'auto';
     pageEl.style.transition = 'opacity 0.5s ease';
     pageEl._isP41Sequence = true;
     pageEl.style.zIndex = '1';
-    
+
     pages[startIndex] = pageEl;
     pageStage.appendChild(pageEl);
     p41ToP42Page = { el: pageEl, index: startIndex };
-    
+
     if (DEBUG) console.log(`✅ p42 페이지 생성 완료`);
 }
 
