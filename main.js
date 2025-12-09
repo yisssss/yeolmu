@@ -841,6 +841,47 @@ async function goToAllPagesAndOverview() {
 }
 
 async function goToP70AndChoosePath() {
+    // ✅ 원본 pageBases 복원 (다른 결말 선택 시)
+    if (originalPageBases.length > 0) {
+        pageBases = [...originalPageBases];
+    }
+    
+    // ✅ 이전에 선택한 경로의 페이지들 제거 (p74 이후)
+    const p73IndexInOriginal = originalPageBases.findIndex(id => id === 'p73');
+    if (p73IndexInOriginal !== -1) {
+        // p74 이후의 페이지들 제거
+        const pagesToRemove = [];
+        for (let i = p73IndexInOriginal + 1; i < pages.length; i++) {
+            if (pages[i]) {
+                const pageId = pages[i].dataset.pageId;
+                if (pageId && (pageId.startsWith('p74') || pageId.startsWith('p75') || 
+                    pageId.startsWith('p76') || pageId.startsWith('p77') || pageId.startsWith('p78') ||
+                    pageId.startsWith('p79') || pageId.startsWith('p80') || pageId.startsWith('p81') ||
+                    pageId.startsWith('p82') || pageId.startsWith('p83') || pageId.startsWith('p84') ||
+                    pageId.startsWith('p85') || pageId.startsWith('p86') || pageId.startsWith('p87') ||
+                    pageId.startsWith('p88') || pageId.startsWith('p89') || pageId.startsWith('p90') ||
+                    pageId.startsWith('p91') || pageId.startsWith('p92') || pageId.startsWith('p93') ||
+                    pageId.startsWith('p94') || pageId.startsWith('p95') || pageId.startsWith('p96') ||
+                    pageId.startsWith('p97'))) {
+                    pagesToRemove.push(i);
+                }
+            }
+        }
+        // 역순으로 제거 (인덱스가 변경되지 않도록)
+        for (let i = pagesToRemove.length - 1; i >= 0; i--) {
+            const idx = pagesToRemove[i];
+            if (pages[idx]) {
+                pages[idx].remove();
+                pages[idx] = null;
+            }
+        }
+        // null 항목 제거
+        pages = pages.filter(p => p !== null);
+    }
+    
+    // selectedPath 초기화
+    selectedPath = null;
+    
     // p73으로 이동하고 선택지 모달 표시
     const p73Index = pageBases.findIndex(id => id === 'p73');
     if (p73Index === -1) {
@@ -1015,24 +1056,61 @@ function applyPathChoice(path) {
         }
     }
     
-    // p73의 인덱스 찾기
-    const p73Index = pageBases.findIndex(id => id === 'p73');
-    if (p73Index === -1) return;
+    // p73의 인덱스 찾기 (원본 기준)
+    const p73IndexInOriginal = originalPageBases.findIndex(id => id === 'p73');
+    if (p73IndexInOriginal === -1) return;
     
+    // ✅ 이전에 생성된 다른 경로의 페이지들 제거
+    const pagesToRemove = [];
+    for (let i = p73IndexInOriginal + 1; i < pages.length; i++) {
+        if (pages[i]) {
+            const pageId = pages[i].dataset.pageId;
+            if (path === 'path1') {
+                // path1 선택 시: p85~p97 제거
+                if (pageId && (pageId.startsWith('p85') || pageId.startsWith('p86') || 
+                    pageId.startsWith('p87') || pageId.startsWith('p88') || pageId.startsWith('p89') ||
+                    pageId.startsWith('p90') || pageId.startsWith('p91') || pageId.startsWith('p92') ||
+                    pageId.startsWith('p93') || pageId.startsWith('p94') || pageId.startsWith('p95') ||
+                    pageId.startsWith('p96') || pageId.startsWith('p97'))) {
+                    pagesToRemove.push(i);
+                }
+            } else if (path === 'path2') {
+                // path2 선택 시: p74~p84 제거
+                if (pageId && (pageId.startsWith('p74') || pageId.startsWith('p75') || 
+                    pageId.startsWith('p76') || pageId.startsWith('p77') || pageId.startsWith('p78') ||
+                    pageId.startsWith('p79') || pageId.startsWith('p80') || pageId.startsWith('p81') ||
+                    pageId.startsWith('p82') || pageId.startsWith('p83') || pageId.startsWith('p84'))) {
+                    pagesToRemove.push(i);
+                }
+            }
+        }
+    }
+    // 역순으로 제거 (인덱스가 변경되지 않도록)
+    for (let i = pagesToRemove.length - 1; i >= 0; i--) {
+        const idx = pagesToRemove[i];
+        if (pages[idx]) {
+            pages[idx].remove();
+            pages[idx] = null;
+        }
+    }
+    // null 항목 제거
+    pages = pages.filter(p => p !== null);
+    
+    // pageBases 업데이트
     if (path === 'path1') {
         // 선택지 1: p74~p84만 남기고 p85~p97 제거
-        const p85Index = pageBases.findIndex(id => id === 'p85');
+        const p85Index = originalPageBases.findIndex(id => id === 'p85');
         if (p85Index !== -1) {
             // p85부터 끝까지 제거
-            pageBases = pageBases.slice(0, p85Index);
+            pageBases = originalPageBases.slice(0, p85Index);
         }
     } else if (path === 'path2') {
         // 선택지 2: p74~p84 제거하고 p85~p97만 남기기
-        const p74Index = pageBases.findIndex(id => id === 'p74');
-        const p85Index = pageBases.findIndex(id => id === 'p85');
+        const p74Index = originalPageBases.findIndex(id => id === 'p74');
+        const p85Index = originalPageBases.findIndex(id => id === 'p85');
         if (p74Index !== -1 && p85Index !== -1) {
             // p74~p84 제거
-            pageBases = pageBases.slice(0, p74Index).concat(pageBases.slice(p85Index));
+            pageBases = originalPageBases.slice(0, p74Index).concat(originalPageBases.slice(p85Index));
         }
     }
     
@@ -1040,6 +1118,7 @@ function applyPathChoice(path) {
     updatePageInfo();
     
     // 선택한 경로의 첫 페이지로 이동
+    const p73Index = pageBases.findIndex(id => id === 'p73');
     const nextIndex = p73Index + 1;
     if (nextIndex < pageBases.length) {
         // 다음 페이지 생성 및 이동
@@ -1400,6 +1479,7 @@ function createBasicPage({ x = 0, y = 0, src = '', label = '', size = null, rot 
 // + NEW: 파일명→타입 매핑
 
 let pageBases = [];
+let originalPageBases = []; // 원본 pageBases 저장 (다른 결말 선택 시 복원용)
 let pageTypeMap = {};
 const pageFileMap = {
 };
@@ -1652,6 +1732,9 @@ async function preloadAllImages(pageIds) {
         pageBases.push(item.id);            // ['p1', 'p2', ...]
         pageTypeMap[item.id] = item.type;   // {p1: 'basic', p3: 'special1'}
     });
+    
+    // 원본 pageBases 저장 (다른 결말 선택 시 복원용)
+    originalPageBases = [...pageBases];
 
 
     // 전체 월드 bounds 미리 계산 (overview 모드용)
@@ -1894,9 +1977,13 @@ document.addEventListener('click', async (e) => {
     // 현재 페이지 ID 확인
     const currentPageId = pageBases[current];
 
-    // p73은 스크롤로만 선택지 진행 (클릭으로 다음 페이지 이동 불가)
+    // p73은 선택지가 선택되지 않았거나 스크롤 중일 때만 클릭 차단
     if (currentPageId === 'p73') {
-        return;
+        // 선택지가 선택되지 않았거나 스크롤 중이면 클릭 차단
+        if (selectedPath === null && activeST) {
+            return;
+        }
+        // 선택지가 선택되었거나 스크롤이 완료된 후에는 클릭 네비게이션 가능
     }
     
     // 클릭 위치에 따라 좌우 영역 구분
@@ -1913,8 +2000,10 @@ document.addEventListener('click', async (e) => {
     // 오른쪽 2/3 영역 클릭 → 다음 페이지
     else {
         // 선택지 경로의 마지막 페이지에서 다음으로 가려고 할 때 Overview 모드로 전환
-        const isPath1End = selectedPath === 'path1' && currentPageId === 'p84';
-        const isPath2End = selectedPath === 'path2' && currentPageId === 'p97';
+        // currentPageId를 pageBases에서 가져오되, pages 배열에서도 확인
+        const actualPageId = pages[current]?.dataset.pageId || currentPageId;
+        const isPath1End = selectedPath === 'path1' && (actualPageId === 'p84' || currentPageId === 'p84');
+        const isPath2End = selectedPath === 'path2' && (actualPageId === 'p97' || currentPageId === 'p97');
         
         if (isPath1End || isPath2End) {
             if (!isOverviewMode) {
@@ -1993,10 +2082,20 @@ function canNavigateFrom(pageId) {
         if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId} 스크롤 진행 중`);
         return false;
     }
-    // p42, p73 등 특수 페이지
-    if (['p42', 'p73'].includes(pageId)) {
+    // p42는 특수 페이지로 차단
+    if (pageId === 'p42') {
         if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId}는 특수 페이지`);
         return false;
+    }
+    // p73은 선택지가 선택된 후에는 클릭 네비게이션 가능
+    if (pageId === 'p73') {
+        // 선택지가 선택되지 않았거나 스크롤 중이면 차단
+        if (selectedPath === null && activeST) {
+            if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId} 스크롤 진행 중 또는 선택지 미선택`);
+            return false;
+        }
+        // 선택지가 선택되었거나 스크롤이 완료된 후에는 클릭 네비게이션 가능
+        return true;
     }
     return true;
 }
@@ -2044,8 +2143,10 @@ nextBtn.addEventListener('click', async () => {
     const currentPageId = pageBases[current];
     
     // 선택지 경로의 마지막 페이지에서 다음으로 가려고 할 때 Overview 모드로 전환
-    const isPath1End = selectedPath === 'path1' && currentPageId === 'p84';
-    const isPath2End = selectedPath === 'path2' && currentPageId === 'p97';
+    // currentPageId를 pageBases에서 가져오되, pages 배열에서도 확인
+    const actualPageId = pages[current]?.dataset.pageId || currentPageId;
+    const isPath1End = selectedPath === 'path1' && (actualPageId === 'p84' || currentPageId === 'p84');
+    const isPath2End = selectedPath === 'path2' && (actualPageId === 'p97' || currentPageId === 'p97');
     
     if (isPath1End || isPath2End) {
         if (!isOverviewMode) {
