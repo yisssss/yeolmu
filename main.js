@@ -680,24 +680,12 @@ function handleMenuAction(action) {
             // 먼저 들여다보기 모드인지 확인
             if (isOverviewMode) {
                 exitOverviewMode(() => {
-                    // 들여다보기 모드로 전환 완료 후 실행
-                    if (selectedPath === 'path1') {
-                        goToP70AndChoosePath('path2');
-                    } else if (selectedPath === 'path2') {
-                        goToP70AndChoosePath('path1');
-                    } else {
-                        showChoiceModal();
-                    }
+                    // 들여다보기 모드 종료 후 p73으로 이동하고 선택지 모달 표시
+                    goToP70AndChoosePath();
                 });
             } else {
-                // 이미 들여다보기 모드라면 바로 실행
-                if (selectedPath === 'path1') {
-                    goToP70AndChoosePath('path2');
-                } else if (selectedPath === 'path2') {
-                    goToP70AndChoosePath('path1');
-                } else {
-                    showChoiceModal();
-                }
+                // 이미 일반 모드라면 바로 p73으로 이동하고 선택지 모달 표시
+                goToP70AndChoosePath();
             }
             break;
         case 'all-pages':
@@ -852,8 +840,49 @@ async function goToAllPagesAndOverview() {
     }
 }
 
-async function goToP70AndChoosePath(path) {
-    // p73으로 이동하고 선택한 경로 적용
+async function goToP70AndChoosePath() {
+    // ✅ 원본 pageBases 복원 (다른 결말 선택 시)
+    if (originalPageBases.length > 0) {
+        pageBases = [...originalPageBases];
+    }
+    
+    // ✅ 이전에 선택한 경로의 페이지들 제거 (p74 이후)
+    const p73IndexInOriginal = originalPageBases.findIndex(id => id === 'p73');
+    if (p73IndexInOriginal !== -1) {
+        // p74 이후의 페이지들 제거
+        const pagesToRemove = [];
+        for (let i = p73IndexInOriginal + 1; i < pages.length; i++) {
+            if (pages[i]) {
+                const pageId = pages[i].dataset.pageId;
+                if (pageId && (pageId.startsWith('p74') || pageId.startsWith('p75') || 
+                    pageId.startsWith('p76') || pageId.startsWith('p77') || pageId.startsWith('p78') ||
+                    pageId.startsWith('p79') || pageId.startsWith('p80') || pageId.startsWith('p81') ||
+                    pageId.startsWith('p82') || pageId.startsWith('p83') || pageId.startsWith('p84') ||
+                    pageId.startsWith('p85') || pageId.startsWith('p86') || pageId.startsWith('p87') ||
+                    pageId.startsWith('p88') || pageId.startsWith('p89') || pageId.startsWith('p90') ||
+                    pageId.startsWith('p91') || pageId.startsWith('p92') || pageId.startsWith('p93') ||
+                    pageId.startsWith('p94') || pageId.startsWith('p95') || pageId.startsWith('p96') ||
+                    pageId.startsWith('p97'))) {
+                    pagesToRemove.push(i);
+                }
+            }
+        }
+        // 역순으로 제거 (인덱스가 변경되지 않도록)
+        for (let i = pagesToRemove.length - 1; i >= 0; i--) {
+            const idx = pagesToRemove[i];
+            if (pages[idx]) {
+                pages[idx].remove();
+                pages[idx] = null;
+            }
+        }
+        // null 항목 제거
+        pages = pages.filter(p => p !== null);
+    }
+    
+    // selectedPath 초기화
+    selectedPath = null;
+    
+    // p73으로 이동하고 선택지 모달 표시
     const p73Index = pageBases.findIndex(id => id === 'p73');
     if (p73Index === -1) {
         console.warn('p73을 찾을 수 없습니다.');
@@ -886,16 +915,16 @@ async function goToP70AndChoosePath(path) {
         await new Promise(resolve => setTimeout(resolve, 50));
     }
     
-    // p73으로 이동
+    // p73으로 이동 후 선택지 모달 표시
     if (pages[p73Index]) {
         centerCameraOn(pages[p73Index], 0.8, p73Index, false, () => {
             clickLocked = false;
-            // 선택한 경로 적용
-            applyPathChoice(path);
+            // 선택지 모달 표시
+            showChoiceModal();
         });
     } else {
         clickLocked = false;
-        applyPathChoice(path);
+        showChoiceModal();
     }
 }
 
@@ -1027,24 +1056,61 @@ function applyPathChoice(path) {
         }
     }
     
-    // p73의 인덱스 찾기
-    const p73Index = pageBases.findIndex(id => id === 'p73');
-    if (p73Index === -1) return;
+    // p73의 인덱스 찾기 (원본 기준)
+    const p73IndexInOriginal = originalPageBases.findIndex(id => id === 'p73');
+    if (p73IndexInOriginal === -1) return;
     
+    // ✅ 이전에 생성된 다른 경로의 페이지들 제거
+    const pagesToRemove = [];
+    for (let i = p73IndexInOriginal + 1; i < pages.length; i++) {
+        if (pages[i]) {
+            const pageId = pages[i].dataset.pageId;
+            if (path === 'path1') {
+                // path1 선택 시: p85~p97 제거
+                if (pageId && (pageId.startsWith('p85') || pageId.startsWith('p86') || 
+                    pageId.startsWith('p87') || pageId.startsWith('p88') || pageId.startsWith('p89') ||
+                    pageId.startsWith('p90') || pageId.startsWith('p91') || pageId.startsWith('p92') ||
+                    pageId.startsWith('p93') || pageId.startsWith('p94') || pageId.startsWith('p95') ||
+                    pageId.startsWith('p96') || pageId.startsWith('p97'))) {
+                    pagesToRemove.push(i);
+                }
+            } else if (path === 'path2') {
+                // path2 선택 시: p74~p84 제거
+                if (pageId && (pageId.startsWith('p74') || pageId.startsWith('p75') || 
+                    pageId.startsWith('p76') || pageId.startsWith('p77') || pageId.startsWith('p78') ||
+                    pageId.startsWith('p79') || pageId.startsWith('p80') || pageId.startsWith('p81') ||
+                    pageId.startsWith('p82') || pageId.startsWith('p83') || pageId.startsWith('p84'))) {
+                    pagesToRemove.push(i);
+                }
+            }
+        }
+    }
+    // 역순으로 제거 (인덱스가 변경되지 않도록)
+    for (let i = pagesToRemove.length - 1; i >= 0; i--) {
+        const idx = pagesToRemove[i];
+        if (pages[idx]) {
+            pages[idx].remove();
+            pages[idx] = null;
+        }
+    }
+    // null 항목 제거
+    pages = pages.filter(p => p !== null);
+    
+    // pageBases 업데이트
     if (path === 'path1') {
         // 선택지 1: p74~p84만 남기고 p85~p97 제거
-        const p85Index = pageBases.findIndex(id => id === 'p85');
+        const p85Index = originalPageBases.findIndex(id => id === 'p85');
         if (p85Index !== -1) {
             // p85부터 끝까지 제거
-            pageBases = pageBases.slice(0, p85Index);
+            pageBases = originalPageBases.slice(0, p85Index);
         }
     } else if (path === 'path2') {
         // 선택지 2: p74~p84 제거하고 p85~p97만 남기기
-        const p74Index = pageBases.findIndex(id => id === 'p74');
-        const p85Index = pageBases.findIndex(id => id === 'p85');
+        const p74Index = originalPageBases.findIndex(id => id === 'p74');
+        const p85Index = originalPageBases.findIndex(id => id === 'p85');
         if (p74Index !== -1 && p85Index !== -1) {
             // p74~p84 제거
-            pageBases = pageBases.slice(0, p74Index).concat(pageBases.slice(p85Index));
+            pageBases = originalPageBases.slice(0, p74Index).concat(originalPageBases.slice(p85Index));
         }
     }
     
@@ -1052,6 +1118,7 @@ function applyPathChoice(path) {
     updatePageInfo();
     
     // 선택한 경로의 첫 페이지로 이동
+    const p73Index = pageBases.findIndex(id => id === 'p73');
     const nextIndex = p73Index + 1;
     if (nextIndex < pageBases.length) {
         // 다음 페이지 생성 및 이동
@@ -1412,6 +1479,7 @@ function createBasicPage({ x = 0, y = 0, src = '', label = '', size = null, rot 
 // + NEW: 파일명→타입 매핑
 
 let pageBases = [];
+let originalPageBases = []; // 원본 pageBases 저장 (다른 결말 선택 시 복원용)
 let pageTypeMap = {};
 const pageFileMap = {
 };
@@ -1664,6 +1732,9 @@ async function preloadAllImages(pageIds) {
         pageBases.push(item.id);            // ['p1', 'p2', ...]
         pageTypeMap[item.id] = item.type;   // {p1: 'basic', p3: 'special1'}
     });
+    
+    // 원본 pageBases 저장 (다른 결말 선택 시 복원용)
+    originalPageBases = [...pageBases];
 
 
     // 전체 월드 bounds 미리 계산 (overview 모드용)
@@ -1905,20 +1976,14 @@ document.addEventListener('click', async (e) => {
     
     // 현재 페이지 ID 확인
     const currentPageId = pageBases[current];
-    
-    // 현재 p35, p41이고 스크롤 중이면 클릭 무시
-    if ((currentPageId === 'p35' || currentPageId === 'p41') && activeST) {
-        return;
-    }
-    
-    // p36~40, p42는 클릭으로 이동할 수 없음 (스크롤 시퀀스의 일부)
-    if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
-        return;
-    }
-    
-    // p73은 스크롤로만 선택지 진행 (클릭으로 다음 페이지 이동 불가)
+
+    // p73은 선택지가 선택되지 않았거나 스크롤 중일 때만 클릭 차단
     if (currentPageId === 'p73') {
-        return;
+        // 선택지가 선택되지 않았거나 스크롤 중이면 클릭 차단
+        if (selectedPath === null && activeST) {
+            return;
+        }
+        // 선택지가 선택되었거나 스크롤이 완료된 후에는 클릭 네비게이션 가능
     }
     
     // 클릭 위치에 따라 좌우 영역 구분
@@ -1935,8 +2000,10 @@ document.addEventListener('click', async (e) => {
     // 오른쪽 2/3 영역 클릭 → 다음 페이지
     else {
         // 선택지 경로의 마지막 페이지에서 다음으로 가려고 할 때 Overview 모드로 전환
-        const isPath1End = selectedPath === 'path1' && currentPageId === 'p84';
-        const isPath2End = selectedPath === 'path2' && currentPageId === 'p97';
+        // currentPageId를 pageBases에서 가져오되, pages 배열에서도 확인
+        const actualPageId = pages[current]?.dataset.pageId || currentPageId;
+        const isPath1End = selectedPath === 'path1' && (actualPageId === 'p84' || currentPageId === 'p84');
+        const isPath2End = selectedPath === 'path2' && (actualPageId === 'p97' || currentPageId === 'p97');
         
         if (isPath1End || isPath2End) {
             if (!isOverviewMode) {
@@ -1946,17 +2013,8 @@ document.addEventListener('click', async (e) => {
         }
         
         if (current < pageBases.length - 1) {
-            // p35, p41에서 다음으로 가려고 할 때는 스크롤 완료 후 자동 이동하므로 무시
-            if (currentPageId === 'p35' || currentPageId === 'p41') {
-                return;
-            }
-            
-            // ✅ 이미 생성된 페이지면 카메라만 이동
-            if (pages[current + 1]) {
-                nextBtn.click();
-            } else {
-                await createNextPage();
-            }
+            // ✅ 이미 생성된 페이지면 카메라만 이동 (또는 nextBtn 클릭 - p35/p41 skip 포함)
+            nextBtn.click();
         }
     }
 });
@@ -2011,13 +2069,44 @@ function updatePageInfo() {
     }
 }
 
+// ===== 네비게이션 헬퍼 함수 =====
+// ✅ 옵션 3: 네비게이션 가능 여부 체크 (코드 가독성 향상)
+function canNavigateFrom(pageId) {
+    // p35 스크롤 시퀀스 페이지들은 네비게이션 불가
+    if (['p36', 'p37', 'p38', 'p39', 'p40'].includes(pageId)) {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId}는 시퀀스 페이지`);
+        return false;
+    }
+    // p35, p41은 스크롤 중이면 불가
+    if ((pageId === 'p35' || pageId === 'p41') && activeST) {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId} 스크롤 진행 중`);
+        return false;
+    }
+    // p42는 특수 페이지로 차단
+    if (pageId === 'p42') {
+        if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId}는 특수 페이지`);
+        return false;
+    }
+    // p73은 선택지가 선택된 후에는 클릭 네비게이션 가능
+    if (pageId === 'p73') {
+        // 선택지가 선택되지 않았거나 스크롤 중이면 차단
+        if (selectedPath === null && activeST) {
+            if (DEBUG) console.warn(`⛔ [네비게이션 차단] ${pageId} 스크롤 진행 중 또는 선택지 미선택`);
+            return false;
+        }
+        // 선택지가 선택되었거나 스크롤이 완료된 후에는 클릭 네비게이션 가능
+        return true;
+    }
+    return true;
+}
+
 // ===== 네비게이션 버튼 =====
 prevBtn.addEventListener('click', () => {
     // 클릭 이벤트 즉시 처리하여 반응성 향상
     if (clickLocked || current <= 0 || isOverviewMode) {
         return; // 잠금 상태이거나 첫 페이지거나 Overview 모드면 즉시 반환
     }
-    
+
     // 특수 스크롤 진행 중이면 먼저 정리
     if (activeST) {
         killSpecialScroll();
@@ -2054,8 +2143,10 @@ nextBtn.addEventListener('click', async () => {
     const currentPageId = pageBases[current];
     
     // 선택지 경로의 마지막 페이지에서 다음으로 가려고 할 때 Overview 모드로 전환
-    const isPath1End = selectedPath === 'path1' && currentPageId === 'p84';
-    const isPath2End = selectedPath === 'path2' && currentPageId === 'p97';
+    // currentPageId를 pageBases에서 가져오되, pages 배열에서도 확인
+    const actualPageId = pages[current]?.dataset.pageId || currentPageId;
+    const isPath1End = selectedPath === 'path1' && (actualPageId === 'p84' || currentPageId === 'p84');
+    const isPath2End = selectedPath === 'path2' && (actualPageId === 'p97' || currentPageId === 'p97');
     
     if (isPath1End || isPath2End) {
         if (!isOverviewMode) {
@@ -2070,14 +2161,52 @@ nextBtn.addEventListener('click', async () => {
         showChoiceModal();
         return;
     }
-    
-    // p35, p41에서 다음으로 가려고 할 때는 무시 (스크롤 완료 후 자동 이동)
-    if (currentPageId === 'p35' || currentPageId === 'p41') {
+
+    // ✅ p35 클릭 시 p36으로 skip
+    if (currentPageId === 'p35') {
+        console.log('⏭️ p35 → p36으로 건너뛰기');
+
+        // 혹시 남아있는 이전 스크롤 트리거 정리
+        if (activeST) {
+            killSpecialScroll();
+        }
+
+        const p36Index = pageBases.findIndex(id => id === 'p36');
+        if (p36Index !== -1) {
+            clickLocked = true;
+            const targetPage = pages[p36Index];
+            if (targetPage) {
+                centerCameraOn(targetPage, 0.8, p36Index, false, () => {
+                    clickLocked = false;
+                });
+            } else {
+                await createNextPage();
+            }
+        }
         return;
     }
-    
-    // p36~40, p42는 다음 페이지로 이동 불가 (스크롤 시퀀스의 일부)
-    if (['p36', 'p37', 'p38', 'p39', 'p40', 'p42'].includes(currentPageId)) {
+
+    // ✅ p41 클릭 시 p42로 skip
+    if (currentPageId === 'p41') {
+        console.log('⏭️ p41 → p42로 건너뛰기');
+
+        // 혹시 남아있는 이전 스크롤 트리거 정리
+        if (activeST) {
+            killSpecialScroll();
+        }
+
+        const p42Index = pageBases.findIndex(id => id === 'p42');
+        if (p42Index !== -1) {
+            clickLocked = true;
+            const targetPage = pages[p42Index];
+            if (targetPage) {
+                centerCameraOn(targetPage, 0.8, p42Index, false, () => {
+                    clickLocked = false;
+                });
+            } else {
+                await createNextPage();
+            }
+        }
         return;
     }
     
@@ -2418,14 +2547,21 @@ function isSpecialPage(page, pageIndex) {
 }
 
 // 이미 생성된 special 페이지에 대해 scrollTrigger와 미니맵을 다시 세팅
-function setupSpecialScrollForPage(pageEl, pageIndex) {
+async function setupSpecialScrollForPage(pageEl, pageIndex) {
+    const pageId = pageEl.dataset.pageId || pageBases[pageIndex];
+
+    // ✅ p35, p41은 스크롤 시퀀스 사용 안 함 (평범한 페이지로 처리)
+    if (pageId === 'p35' || pageId === 'p41') {
+        console.log(`⏭️ ${pageId} 스크롤 시퀀스 건너뛰기 - 평범한 페이지로 처리`);
+        clickLocked = false;
+        return;
+    }
+
     // 혹시 남아 있을지 모르는 이전 special 스크롤 상태를 먼저 완전히 정리
     if (activeST || specialSvg || specialSpacer || specialMini) {
         killSpecialScroll();
     }
 
-    const pageId = pageEl.dataset.pageId || pageBases[pageIndex];
-    
     if (DEBUG) {
         console.log(`🔍 [setupSpecialScrollForPage] pageId: ${pageId}, pageIndex: ${pageIndex}`);
     }
@@ -2519,12 +2655,12 @@ function setupSpecialScrollForPage(pageEl, pageIndex) {
 
     // 32p인 경우 33~37 페이지 미리 생성 (숨김 상태)
     if (pageId === 'p35') {
-        preloadP33ToP37();
+        await preloadP33ToP37();  // ✅ await 추가
     }
-    
+
     // p41인 경우 p42 페이지 미리 생성 (숨김 상태)
     if (pageId === 'p41') {
-        preloadP42();
+        await preloadP42();  // ✅ await 추가
     }
 
     attachSpecialScrollPath(pageEl, start, size, localPts, pageEl._type || pageTypeMap[pageId] || 'special1');
@@ -2610,8 +2746,9 @@ async function preloadP33ToP37() {
         // 이미 생성된 페이지면 사용
         if (pages[pageIndex]) {
             const pageEl = pages[pageIndex];
-            pageEl.style.opacity = '0';
-            pageEl.style.pointerEvents = 'none';
+            // ✅ p36-p40은 이제 일반 페이지로 취급 - 항상 표시
+            pageEl.style.opacity = '1';
+            pageEl.style.pointerEvents = 'auto';
             pageEl._isP35Sequence = true; // 35p 시퀀스 페이지임을 표시
             // p36-p40은 p35보다 아래에 위치하도록 z-index 설정
             pageEl.style.zIndex = '1';
@@ -2637,20 +2774,20 @@ async function preloadP33ToP37() {
             type: pageType,
             pageId
         });
-        
-        // 초기에는 숨김 상태 (p32 스크롤에 따라 순서대로 드러남)
-        pageEl.style.opacity = '0';
-        pageEl.style.pointerEvents = 'none';
+
+        // ✅ p36-p40은 이제 일반 페이지로 취급 - 즉시 표시
+        pageEl.style.opacity = '1';
+        pageEl.style.pointerEvents = 'auto';
         pageEl.style.transition = 'opacity 0.5s ease';
         pageEl._isP35Sequence = true; // 35p 시퀀스 페이지임을 표시
         // p36-p40은 p35보다 아래에 위치하도록 z-index 설정
         pageEl.style.zIndex = '1';
-        
+
         pages[pageIndex] = pageEl;
         pageStage.appendChild(pageEl);
         p33ToP37Pages.push({ el: pageEl, index: pageIndex });
     }
-    
+
     if (DEBUG) console.log(`✅ p36-p40 페이지 생성 완료: ${p33ToP37Pages.length}개`);
 }
 
@@ -2667,8 +2804,9 @@ async function preloadP42() {
     // 이미 생성된 페이지면 사용
     if (pages[startIndex]) {
         const pageEl = pages[startIndex];
-        pageEl.style.opacity = '0';
-        pageEl.style.pointerEvents = 'none';
+        // ✅ p42는 이제 일반 페이지로 취급 - 항상 표시
+        pageEl.style.opacity = '1';
+        pageEl.style.pointerEvents = 'auto';
         pageEl._isP41Sequence = true;
         pageEl.style.zIndex = '1';
         p41ToP42Page = { el: pageEl, index: startIndex };
@@ -2694,37 +2832,38 @@ async function preloadP42() {
         type: pageType,
         pageId
     });
-    
-    pageEl.style.opacity = '0';
-    pageEl.style.pointerEvents = 'none';
+
+    // ✅ p42는 이제 일반 페이지로 취급 - 즉시 표시
+    pageEl.style.opacity = '1';
+    pageEl.style.pointerEvents = 'auto';
     pageEl.style.transition = 'opacity 0.5s ease';
     pageEl._isP41Sequence = true;
     pageEl.style.zIndex = '1';
-    
+
     pages[startIndex] = pageEl;
     pageStage.appendChild(pageEl);
     p41ToP42Page = { el: pageEl, index: startIndex };
-    
+
     if (DEBUG) console.log(`✅ p42 페이지 생성 완료`);
 }
 
 // p41 스크롤 진행률에 따라 p42 페이지 표시
 function handleP41ScrollProgress(progress) {
     if (!p41ToP42Page) return;
-    
+
     const pageEl = p41ToP42Page.el;
     const pageIndex = p41ToP42Page.index;
-    
+
     // 50% 이상 스크롤하면 p42 표시
     if (progress >= 0.5) {
         if (pageEl.style.opacity !== '1') {
             pageEl.style.opacity = '1';
             if (DEBUG) console.log(`✅ p42 표시됨 (progress: ${(progress * 100).toFixed(1)}%)`);
         }
-        
+
         specialProgressIndex = pageIndex;
         updatePageInfo();
-        
+
         if (pages[pageIndex]) {
             updatePageDimming(pages[pageIndex]);
         }
@@ -2782,7 +2921,7 @@ function handleP32ScrollProgress(progress) {
     if (progress >= 0.8 && lastVisibleIndex === pageBases.findIndex(id => id === 'p40')) {
         if (clickLocked) {
             clickLocked = false;
-            if (DEBUG) console.log('🔓 p37까지 표시 완료 - 네비게이션 잠금 해제');
+            if (DEBUG) console.log('🔓 p40까지 표시 완료 - 네비게이션 잠금 해제');
         }
     }
 }
@@ -2832,11 +2971,11 @@ async function goToP43AfterP41() {
         killSpecialScroll();
     }
     
-    // p43 페이지로 이동
+    // p43 페이지로 이동 (화면 튐 방지를 위해 duration 증가)
     const targetPage = pages[p43Index];
     if (targetPage) {
         const isSpecial = isSpecialPage(targetPage, p43Index);
-        centerCameraOn(targetPage, 0.8, p43Index, false, () => {
+        centerCameraOn(targetPage, 1.2, p43Index, false, () => {  // 0.8 → 1.2 (부드러운 전환)
             if (isSpecial) {
                 setupSpecialScrollForPage(targetPage, p43Index);
             }
@@ -2860,6 +2999,9 @@ function killSpecialScroll() {
     if (specialSvg) { specialSvg.remove(); specialSvg = null; }
     if (specialSpacer) { specialSpacer.remove(); specialSpacer = null; }
 
+    // ✅ 스크롤 위치 초기화 - 특수 스크롤 페이지에서 벗어났을 때 스크롤 리셋
+    window.scrollTo(0, 0);
+
     // 특수 페이지 미니맵 제거
     if (specialMini) { specialMini.remove(); specialMini = null; }
     specialMiniIndicator = null;
@@ -2876,11 +3018,11 @@ function killSpecialScroll() {
             updatePageDimming(pages[current]);
         }
     }
-    
+
     // 스크롤 100% 도달 후 추가 스크롤 감지 핸들러 제거
     removeScrollAtMaxHandler();
     isScrollAtMax = false;
-    
+
     // 32p 시퀀스 페이지 정리 (38로 이동할 때는 유지)
     // p33ToP37Pages는 유지 (다시 32p로 돌아올 수 있으므로)
 }
@@ -3044,34 +3186,23 @@ function attachSpecialScrollPath(pageEl, start, size, points, pageType = 'specia
                     clickLocked = false;  // ✅ 스크롤 완료 시에도 네비게이션 가능
                     
                     // p35 스크롤 완료 시 p41로 자동 이동
-                    // p40까지 표시되고 (0.85 이상) 조금 더 스크롤하면 바로 p41로 이동
+                    // ✅ 옵션 1: 조건 완화 - progress만으로 판단
                     if (pageIdForScroll === 'p35' && t >= 0.85 && !pageEl._p38AutoMoveScheduled) {
-                        const p40Index = pageBases.findIndex(id => id === 'p40');
-                        // p40까지 표시되었는지 확인 (override 포함)
-                        const hasReachedP40 = p40Index !== -1 && (specialProgressIndex === p40Index || current === p40Index);
-                        
-                        console.log(`🔍 [p35 스크롤 완료 체크] t=${t.toFixed(2)}, p40Index=${p40Index}, specialProgressIndex=${specialProgressIndex}, current=${current}, hasReachedP40=${hasReachedP40}`);
-                        
-                        if (hasReachedP40) {
-                            pageEl._p38AutoMoveScheduled = true;
-                            console.log('🚀 p40 표시 완료 - p41로 자동 이동 시작');
-                            setTimeout(() => {
-                                goToP38AfterP32();
-                            }, 500);
-                        }
+                        pageEl._p38AutoMoveScheduled = true;
+                        console.log('🚀 p35 스크롤 85% 완료 - p41로 자동 이동 시작');
+                        setTimeout(() => {
+                            goToP38AfterP32();
+                        }, 300);  // 500ms → 300ms로 단축
                     }
                     
                     // p41 스크롤 완료 시 p43으로 자동 이동
+                    // ✅ 조건 완화 - progress만으로 판단
                     if (pageIdForScroll === 'p41' && t >= 0.85 && !pageEl._p43AutoMoveScheduled) {
-                        const p42Index = pageBases.findIndex(id => id === 'p42');
-                        const hasReachedP42 = p42Index !== -1 && (specialProgressIndex === p42Index || current === p42Index);
-                        if (hasReachedP42) {
-                            pageEl._p43AutoMoveScheduled = true;
-                            if (DEBUG) console.log('🚀 p42 표시 완료 - p43으로 자동 이동 시작');
-                            setTimeout(() => {
-                                goToP43AfterP41();
-                            }, 500);
-                        }
+                        pageEl._p43AutoMoveScheduled = true;
+                        if (DEBUG) console.log('🚀 p41 스크롤 85% 완료 - p43으로 자동 이동 시작');
+                        setTimeout(() => {
+                            goToP43AfterP41();
+                        }, 300);  // 500ms → 300ms로 단축
                     }
                 }
             }
